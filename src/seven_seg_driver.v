@@ -57,5 +57,4 @@ module seven_seg_driver(
             default: seg = 7'b0000001; // dash
         endcase
     end
-
 endmodule
