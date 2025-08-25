@@ -3,7 +3,7 @@ module stopwatch(
     output reg [5:0] sec, min
     );
     
-    wire clk_out;
+    wire clock_hz;
     reg running;
 
     always @(posedge clk or posedge rst) begin
