@@ -1,9 +1,11 @@
 # Tiny Tapeout project information
 project:
-  title:        "STOPWATCH"      # Project title
-  author:       "MANORANJAN"      # Your name
-  discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "ITS A DIGI CLOCK"      # One line description of what your project does
+  title: "Stopwatch with 7-seg Display"   # 🔴 must not be empty
+  description: "A simple stopwatch with minutes and seconds display on 7-seg, implemented for TinyTapeout."
+  author: "Manoranjan"                     # put your name/handle here
+  github_user: "Manoranjan513"
+  discord: "your_discord_handle"          # optional but recommended
+  license: "MIT"                          # or Apache-2.0, etc.
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     50000000       # Clock frequency in Hz (or 0 if not applicable)
 
