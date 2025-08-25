@@ -1,58 +1,79 @@
-// Top-level wrapper for TinyTapeout stopwatch project
 module tt_um_stopwatchtop (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Output enable
-    input  wire ena,            // Enable signal (not used but required)
-    input  wire clk,            // Clock
-    input  wire rst_n           // Reset (active low)
+    input  wire [7:0] ui_in,    // user inputs
+    output wire [7:0] uo_out,   // user outputs
+    input  wire [7:0] uio_in,   // bidir inputs
+    output wire [7:0] uio_out,  // bidir outputs
+    output wire [7:0] uio_oe,   // bidir enables
+    input  wire       ena,      // always 1 when enabled
+    input  wire       clk,      // global TT clock (~12 MHz)
+    input  wire       rst_n     // global reset (active low)
 );
 
-    // Control inputs from ui_in
-    wire start = ui_in[0];  // Start signal
-    wire stop  = ui_in[1];  // Stop signal
+    // Control signals
+    wire start = ui_in[0];
+    wire stop  = ui_in[1];
 
     // Stopwatch outputs
     wire [5:0] sec;
     wire [5:0] min;
 
-    // Drive outputs to uo_out (observe stopwatch time)
-    assign uo_out[5:0] = sec;        // Seconds → lower 6 bits
-    assign uo_out[7:6] = min[1:0];   // Minutes → upper 2 bits
-
-    // Unused IOs → tie off
-    wire [7:0] unused_uio_in = uio_in; // prevent "unused input" warning
-    wire unused_ena = ena;             // prevent "unused ena" warning
-    assign uio_out = 8'b0;
-    assign uio_oe  = 8'b0;
-
-    // Stopwatch instance
+    // Stopwatch instance (active-high reset inside)
     stopwatch sw (
-        .clk   (clk),
-        .rst_n (rst_n), 
-        .start (start),
-        .stop  (stop),
-        .sec   (sec),
-        .min   (min)
+        .clk (clk),
+        .rst (~rst_n),   // convert active-low → active-high
+        .start(start),
+        .stop(stop),
+        .sec(sec),
+        .min(min)
     );
 
-    // 7-segment display driver
+    // Convert sec/min into BCD
+    reg [15:0] bcd;
+    reg [5:0] sec_tmp, min_tmp;
+
+    always @(*) begin
+        // --- seconds ---
+        sec_tmp = sec;
+        if (sec_tmp >= 50) begin bcd[7:4] = 5; sec_tmp = sec_tmp - 50; end
+        else if (sec_tmp >= 40) begin bcd[7:4] = 4; sec_tmp = sec_tmp - 40; end
+        else if (sec_tmp >= 30) begin bcd[7:4] = 3; sec_tmp = sec_tmp - 30; end
+        else if (sec_tmp >= 20) begin bcd[7:4] = 2; sec_tmp = sec_tmp - 20; end
+        else if (sec_tmp >= 10) begin bcd[7:4] = 1; sec_tmp = sec_tmp - 10; end
+        else bcd[7:4] = 0;
+        bcd[3:0] = sec_tmp[3:0];
+
+        // --- minutes ---
+        min_tmp = min;
+        if (min_tmp >= 50) begin bcd[15:12] = 5; min_tmp = min_tmp - 50; end
+        else if (min_tmp >= 40) begin bcd[15:12] = 4; min_tmp = min_tmp - 40; end
+        else if (min_tmp >= 30) begin bcd[15:12] = 3; min_tmp = min_tmp - 30; end
+        else if (min_tmp >= 20) begin bcd[15:12] = 2; min_tmp = min_tmp - 20; end
+        else if (min_tmp >= 10) begin bcd[15:12] = 1; min_tmp = min_tmp - 10; end
+        else bcd[15:12] = 0;
+        bcd[11:8] = min_tmp[3:0];
+    end
+
+    // 7-seg driver outputs
     wire [6:0] seg;
-    wire dp;
+    wire       dp;
     wire [3:0] an;
 
     seven_seg_driver ssd (
-        .clk   (clk),
-        .rst_n (rst_n), 
-        .bcd   ({min, sec}), // Concatenate minutes and seconds
-        .seg   (seg),
-        .dp    (dp),
-        .an    (an)
+        .clk (clk),
+        .rst (~rst_n),
+        .bcd (bcd),
+        .seg (seg),
+        .dp  (dp),
+        .an  (an)
     );
 
-    // Optional: expose 7-seg signals for debugging
-    // assign uo_out = {seg[3:0], dp, an[2:0]};
+    // Map outputs → TinyTapeout pins
+    assign uo_out[6:0] = seg;
+    assign uo_out[7]   = dp;
+    assign uio_out[3:0] = an;
+    assign uio_out[7:4] = 4'b0000;
+    assign uio_oe = 8'h0F; // lower 4 are outputs
 
+    // Prevent unused warnings
+    wire _unused = &{ena, ui_in[7:2], uio_in};
 endmodule
