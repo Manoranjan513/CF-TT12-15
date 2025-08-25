@@ -53,5 +53,4 @@ module stopwatch(
             end
         end
     end
-
 endmodule
