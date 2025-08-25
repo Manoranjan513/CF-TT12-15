@@ -10,8 +10,8 @@ module tt_um_stopwatchtop (
 );
 
     // Control signals
-    wire start = ui_in[0];
-    wire stop  = ui_in[1];
+    wire start = ui_in[0]&ena;
+    wire stop  = ui_in[1]&ena;
 
     // Stopwatch outputs
     wire [5:0] sec;
@@ -76,5 +76,5 @@ module tt_um_stopwatchtop (
     assign uio_oe = 8'h0F; // lower 4 are outputs
 
     // Prevent unused warnings
-    wire _unused = &{ena, ui_in[7:2], uio_in};
+    wire _unused = &{ui_in[7:2], uio_in};
 endmodule
