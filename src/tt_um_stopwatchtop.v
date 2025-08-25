@@ -1,14 +1,14 @@
 module tt_um_stopwatchtop(
-    input  wire [7:0] ui_in,
-    output wire [7:0] uo_out,
-    input  wire [7:0] uio_in,
-    output wire [7:0] uio_out,
-    output wire [7:0] uio_oe,
-    input  wire   ena,
-    input  wire   clk,
-    input  wire   rst_n 
+    input  wire [7:0] ui_in,   // user inputs
+    output wire [7:0] uo_out,  // user outputs
+    input  wire [7:0] uio_in,  // bidir inputs
+    output wire [7:0] uio_out, // bidir outputs
+    output wire [7:0] uio_oe,  // bidir enables
+    input  wire       ena,     // always 1 when enabled
+    input  wire       clk,     // global TT clock (~12 MHz)
+    input  wire       rst_n    // global reset (active low)
 );
-    
+
     // Control signals
     wire start = ui_in[0];
     wire stop  = ui_in[1];
@@ -22,9 +22,9 @@ module tt_um_stopwatchtop(
     assign uo_out[7]   = dp;
 
     // Use only lower 4 bits of uio_out
-    assign uio_oe       = 8'h0F;     // [3:0] output, [7:4] input
+    assign uio_oe       = 8'h0F;     // [3:0] outputs, [7:4] inputs
     assign uio_out[3:0] = an;
-    assign uio_out[7:4] = 4'h0;      // keep tied low to avoid floating nets
+    assign uio_out[7:4] = 4'h0;      // tie low → avoid floating
 
     // Stopwatch outputs
     wire [5:0] sec;
@@ -33,10 +33,10 @@ module tt_um_stopwatchtop(
     // BCD representation
     reg [15:0] bcd;
 
-    // Stopwatch instance (active-low reset corrected)
+    // Stopwatch instance
     stopwatch sw(
         .clk(clk),
-        .rst(~rst_n),   // fix: convert active-low to active-high
+        .rst(~rst_n),   // convert active-low reset to active-high
         .start(start),
         .stop(stop),
         .sec(sec),
@@ -44,35 +44,34 @@ module tt_um_stopwatchtop(
     );
 
     // Synthesizable sec/min → BCD converter
-    // No %, / operators (instead comparators and subtraction)
     reg [5:0] sec_tmp, min_tmp;
 
     always @(*) begin
-        // Seconds
-        sec_tmp    = sec;
+        // seconds tens
+        sec_tmp = sec;
         if (sec_tmp >= 50) begin bcd[7:4] = 5; sec_tmp = sec_tmp - 50; end
         else if (sec_tmp >= 40) begin bcd[7:4] = 4; sec_tmp = sec_tmp - 40; end
         else if (sec_tmp >= 30) begin bcd[7:4] = 3; sec_tmp = sec_tmp - 30; end
         else if (sec_tmp >= 20) begin bcd[7:4] = 2; sec_tmp = sec_tmp - 20; end
         else if (sec_tmp >= 10) begin bcd[7:4] = 1; sec_tmp = sec_tmp - 10; end
         else bcd[7:4] = 0;
-        bcd[3:0] = sec_tmp[3:0];  // ones place
+        bcd[3:0] = sec_tmp[3:0];  // ones
 
-        // Minutes
-        min_tmp    = min;
+        // minutes tens
+        min_tmp = min;
         if (min_tmp >= 50) begin bcd[15:12] = 5; min_tmp = min_tmp - 50; end
         else if (min_tmp >= 40) begin bcd[15:12] = 4; min_tmp = min_tmp - 40; end
         else if (min_tmp >= 30) begin bcd[15:12] = 3; min_tmp = min_tmp - 30; end
         else if (min_tmp >= 20) begin bcd[15:12] = 2; min_tmp = min_tmp - 20; end
         else if (min_tmp >= 10) begin bcd[15:12] = 1; min_tmp = min_tmp - 10; end
         else bcd[15:12] = 0;
-        bcd[11:8] = min_tmp[3:0]; // ones place
+        bcd[11:8] = min_tmp[3:0]; // ones
     end
 
-    // 7-seg display driver (active-low reset corrected)
+    // 7-seg display driver
     seven_seg_driver ssd(
         .clk(clk),
-        .rst(~rst_n),   // fix reset polarity
+        .rst(~rst_n),
         .bcd(bcd),
         .seg(seg),
         .dp(dp),
