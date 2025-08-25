@@ -20,7 +20,7 @@ module tt_um_stopwatchtop (
     // Stopwatch instance (active-high reset inside)
     stopwatch sw (
         .clk (clk),
-        .rst (~rst_n),   // convert active-low → active-high
+        .rst_n (rst_n),   // convert active-low → active-high
         .start(start),
         .stop(stop),
         .sec(sec),
@@ -30,7 +30,8 @@ module tt_um_stopwatchtop (
     // Convert sec/min into BCD
     reg [15:0] bcd;
     reg [5:0] sec_tmp, min_tmp;
-
+    wire rst=~rst_n;
+    
     always @(*) begin
         // --- seconds ---
         sec_tmp = sec;
@@ -60,7 +61,7 @@ module tt_um_stopwatchtop (
 
     seven_seg_driver ssd (
         .clk (clk),
-        .rst (~rst_n),
+        .rst_n (rst_n),
         .bcd (bcd),
         .seg (seg),
         .dp  (dp),
