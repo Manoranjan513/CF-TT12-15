@@ -1,85 +1,56 @@
-module tt_um_stopwatchtop(
-    input  wire [7:0] ui_in,   // user inputs
-    output wire [7:0] uo_out,  // user outputs
-    input  wire [7:0] uio_in,  // bidir inputs
-    output wire [7:0] uio_out, // bidir outputs
-    output wire [7:0] uio_oe,  // bidir enables
-    input  wire       ena,     // always 1 when enabled
-    input  wire       clk,     // global TT clock (~12 MHz)
-    input  wire       rst_n    // global reset (active low)
+// Top-level wrapper for TinyTapeout stopwatch project
+module tt_um_stopwatchtop (
+    input  wire [7:0] ui_in,    // Dedicated inputs
+    output wire [7:0] uo_out,   // Dedicated outputs
+    input  wire [7:0] uio_in,   // IOs: Input path
+    output wire [7:0] uio_out,  // IOs: Output path
+    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
+    input  wire clk,            // Clock
+    input  wire rst_n           // Active-low reset
 );
 
-    // Control signals
-    wire start = ui_in[0];
-    wire stop  = ui_in[1];
-
-    // 7-seg display outputs
-    reg [6:0] seg;
-    reg       dp;
-    reg [3:0] an;
-
-    assign uo_out[6:0] = seg;
-    assign uo_out[7]   = dp;
-
-    // Use only lower 4 bits of uio_out
-    assign uio_oe       = 8'h0F;     // [3:0] outputs, [7:4] inputs
-    assign uio_out[3:0] = an;
-    assign uio_out[7:4] = 4'h0;      // tie low → avoid floating
+    // Inputs
+    wire start = ui_in[0];  // Start signal
+    wire stop  = ui_in[1];  // Stop signal
 
     // Stopwatch outputs
     wire [5:0] sec;
     wire [5:0] min;
 
-    // BCD representation
-    reg [15:0] bcd;
+    // Drive outputs to uo_out (just for observing on pins)
+    assign uo_out[5:0] = sec;   // Seconds to lower 6 bits
+    assign uo_out[7:6] = min[1:0]; // Lower 2 bits of minutes
+
+    // Not using bidirectional IOs
+    assign uio_out = 8'b0;
+    assign uio_oe  = 8'b0;
 
     // Stopwatch instance
-    stopwatch sw(
+    stopwatch sw (
         .clk(clk),
-        .rst(~rst_n),   // convert active-low reset to active-high
+        .rst_n(rst_n),   // Fixed reset connection
         .start(start),
         .stop(stop),
         .sec(sec),
         .min(min)
     );
 
-    // Synthesizable sec/min → BCD converter
-    reg [5:0] sec_tmp, min_tmp;
+    // 7-seg display driver instance
+    wire [6:0] seg;
+    wire dp;
+    wire [3:0] an;
 
-    always @(*) begin
-        // seconds tens
-        sec_tmp = sec;
-        if (sec_tmp >= 50) begin bcd[7:4] = 5; sec_tmp = sec_tmp - 50; end
-        else if (sec_tmp >= 40) begin bcd[7:4] = 4; sec_tmp = sec_tmp - 40; end
-        else if (sec_tmp >= 30) begin bcd[7:4] = 3; sec_tmp = sec_tmp - 30; end
-        else if (sec_tmp >= 20) begin bcd[7:4] = 2; sec_tmp = sec_tmp - 20; end
-        else if (sec_tmp >= 10) begin bcd[7:4] = 1; sec_tmp = sec_tmp - 10; end
-        else bcd[7:4] = 0;
-        bcd[3:0] = sec_tmp[3:0];  // ones
-
-        // minutes tens
-        min_tmp = min;
-        if (min_tmp >= 50) begin bcd[15:12] = 5; min_tmp = min_tmp - 50; end
-        else if (min_tmp >= 40) begin bcd[15:12] = 4; min_tmp = min_tmp - 40; end
-        else if (min_tmp >= 30) begin bcd[15:12] = 3; min_tmp = min_tmp - 30; end
-        else if (min_tmp >= 20) begin bcd[15:12] = 2; min_tmp = min_tmp - 20; end
-        else if (min_tmp >= 10) begin bcd[15:12] = 1; min_tmp = min_tmp - 10; end
-        else bcd[15:12] = 0;
-        bcd[11:8] = min_tmp[3:0]; // ones
-    end
-
-    // 7-seg display driver
-    seven_seg_driver ssd(
+    seven_seg_driver ssd (
         .clk(clk),
-        .rst(~rst_n),
-        .bcd(bcd),
+        .rst_n(rst_n),  // Ensure your seven_seg_driver also uses rst_n
+        .bcd({min, sec}), // Concatenate min:sec into BCD input
         .seg(seg),
         .dp(dp),
         .an(an)
     );
 
-    // Prevent unused warnings
-    wire _unused;
-    assign _unused = &{ena, ui_in[7:2], uio_in};
+    // Optionally, map some 7-seg signals to outputs for debugging
+    // (comment out if you don’t want them on uo_out)
+    // assign uo_out = {seg[3:0], dp, an[2:0]};
 
 endmodule
