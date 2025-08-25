@@ -1,11 +1,14 @@
 module stopwatch(
-    input  wire clk,
-    input  wire rst,     // active high reset
+    input  wire clk,       // 50 MHz input clock
+    input  wire rst_n,     // active low reset
     input  wire start,
     input  wire stop,
     output reg [5:0] sec,
     output reg [5:0] min
 );
+
+    // Convert to active-high reset
+    wire rst = ~rst_n;
 
     // Run/stop state
     reg running;
@@ -19,14 +22,14 @@ module stopwatch(
             running <= 0;
     end
 
-    // Divider for ~1 Hz (assuming 12 MHz input clock)
-    reg [23:0] div_counter;
-    wire one_sec_enable = (div_counter == 24'd11_999_999);
+    // Divider for ~1 Hz (assuming 50 MHz input clock)
+    reg [25:0] div_counter;
+    wire one_sec_enable = (div_counter == 26'd49_999_999);
 
     always @(posedge clk or posedge rst) begin
         if (rst)
             div_counter <= 0;
-        else if (div_counter == 24'd11_999_999)
+        else if (div_counter == 26'd49_999_999)
             div_counter <= 0;
         else
             div_counter <= div_counter + 1;
