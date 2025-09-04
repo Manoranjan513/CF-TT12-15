@@ -1,7 +1,7 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
-/* Testbench for TinyTapeout stopwatch project */
+/*Testbench for TinyTapeout stopwatch project*/
 module tb ();
 
   // Dump the signals to a VCD file (for GTKWave)
