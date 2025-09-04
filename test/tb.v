@@ -65,7 +65,7 @@ module tb ();
     #500 ui_in = 8'h02;   // maybe "stop"
     #300 ui_in = 8'h03;   // maybe "reset stopwatch"
 
-    // Run for some time
+    // Run for some times
     #2000;
     $finish;
   end
