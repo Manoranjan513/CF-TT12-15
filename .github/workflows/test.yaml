@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - "test/**"
+      - "src/**"
       - "*.v"
       - "*.sv"
       - ".github/workflows/test.yaml"
   pull_request:
     paths:
       - "test/**"
+      - "src/**"
       - "*.v"
       - "*.sv"
       - ".github/workflows/test.yaml"
@@ -31,9 +33,8 @@ jobs:
           pip install cocotb cocotb-bus
           sudo apt update
           sudo apt install -y iverilog
-          
+
       - name: Run cocotb tests
         run: |
-          export MODULE=test.test   # Path to your test.py (without .py)
-          export TOPLEVEL=tt_um_stopwatchtop.v  # Change to your Verilog top module name
-          make  # if you have a Makefile for cocotb, or run iverilog/python commands directly
+          cd test
+          make
