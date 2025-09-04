@@ -8,30 +8,45 @@ from cocotb.triggers import ClockCycles
 
 @cocotb.test()
 async def test_project(dut):
-    dut._log.info("Start")
+    dut._log.info("=== Start Stopwatch Test ===")
 
-    # Set the clock period to 10 us (100 KHz)
+    # -----------------------
+    # Clock setup
+    # -----------------------
+    # Create a 100 kHz clock (period = 10 us)
     clock = Clock(dut.clk, 10, units="us")
     cocotb.start_soon(clock.start())
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = 0
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
+    # -----------------------
+    # Reset sequence
+    # -----------------------
+    dut._log.info("Resetting DUT")
+    dut.ena.value = 1          # TinyTapeout requires ena=1 when active
+    dut.ui_in.value = 0        # clear user inputs (start/stop)
+    dut.uio_in.value = 0       # tie off bidir inputs
+    dut.rst_n.value = 0        # assert reset (active-low)
     await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
+    dut.rst_n.value = 1        # release reset
+    await ClockCycles(dut.clk, 5)
 
-    dut._log.info("Test project behavior")
+    # -----------------------
+    # Apply stimulus
+    # -----------------------
+    dut._log.info("Starting stopwatch")
+    dut.ui_in.value = 0b00000001   # start = 1, stop = 0
+    await ClockCycles(dut.clk, 100)  # wait 100 cycles (simulation short)
 
-    # Set the input values you want to test
+    dut._log.info("Stopping stopwatch")
+    dut.ui_in.value = 0b00000010   # start = 0, stop = 1
+    await ClockCycles(dut.clk, 10)
 
-    # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
+    # -----------------------
+    # Check results
+    # -----------------------
+    dut._log.info(f"uo_out = {dut.uo_out.value}")
+    dut._log.info(f"uio_out = {dut.uio_out.value}")
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module
+    # Example assertion: uo_out should not be all zeros after running
+    assert dut.uo_out.value.integer != 0, "Stopwatch did not count!"
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+    dut._log.info("=== Stopwatch Test PASSED ===")
