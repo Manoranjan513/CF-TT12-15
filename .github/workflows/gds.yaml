@@ -47,9 +47,16 @@ jobs:
     needs: gds
     runs-on: ubuntu-24.04
     permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
+      pages: write
+      id-token: write
     steps:
       - uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
         with:
           pdk: sky130
+
+      # Save the generated VCD output as an artifact
+      - name: Upload VCD artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-vcd
+          path: path/to/your/output/*.vcd
